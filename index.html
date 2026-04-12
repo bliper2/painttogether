@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaintTogether — Live Canvas</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0b0b0c; --panel:#141416; --surface:#1c1c1f; --border:#2c2c30;
+  --text:#ebebeb; --muted:#5a5a62; --accent:#ff4f17; --green:#22d67a;
+  --red:#ef4444; --gold:#f59e0b;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+/* HEADER */
+header{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;z-index:10}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.04em;display:flex;align-items:center;gap:8px;cursor:pointer}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.5}}
+.header-right{display:flex;align-items:center;gap:12px}
+.online-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:.7rem;color:var(--muted)}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,214,122,.5)}50%{box-shadow:0 0 0 5px rgba(34,214,122,0)}}
+#onlineCount{color:var(--text);font-weight:500}
+.my-chip{font-size:.72rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text);display:flex;align-items:center;gap:6px}
+.role-badge{font-size:.55rem;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.05em}
+.role-badge.admin{background:rgba(255,79,23,.15);color:var(--accent);border:1px solid rgba(255,79,23,.3)}
+.role-badge.owner{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
+
+/* LAYOUT */
+.workspace{display:flex;flex:1;overflow:hidden}
+
+/* LEFT TOOLBAR */
+.toolbar{width:60px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:2px;flex-shrink:0;overflow-y:auto;overflow-x:hidden}
+.toolbar::-webkit-scrollbar{width:0}
+.sep{width:32px;height:1px;background:var(--border);margin:8px 0;flex-shrink:0}
+.tool-btn{width:42px;height:42px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .13s;flex-shrink:0}
+.tool-btn:hover{background:var(--surface);color:var(--text)}
+.tool-btn.active{background:var(--accent);border-color:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 12px rgba(255,79,23,.35)}
+.size-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0 8px}
+.size-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.size-val{font-size:.65rem;color:var(--text);font-weight:500}
+input[type=range].vert{-webkit-appearance:none;appearance:none;writing-mode:vertical-lr;direction:rtl;width:4px;height:72px;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}
+.palette{display:flex;flex-direction:column;align-items:center;gap:5px}
+.swatch{width:24px;height:24px;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0}
+.swatch:hover{transform:scale(1.18)}
+.swatch.active{border-color:white;box-shadow:0 0 0 1px var(--bg)}
+.custom-wrap{width:24px;height:24px;border-radius:7px;border:2px dashed var(--border);overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;transition:border-color .15s}
+.custom-wrap:hover{border-color:var(--accent)}
+.custom-wrap input[type=color]{position:absolute;width:200%;height:200%;top:-50%;left:-50%;border:none;padding:0;cursor:pointer;background:none}
+
+/* CANVAS AREA */
+.canvas-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;background:var(--bg);background-image:radial-gradient(ellipse at 15% 85%,rgba(255,79,23,.04) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(124,58,237,.04) 0%,transparent 55%);position:relative}
+#mainCanvas{display:block;background:#fff;cursor:crosshair;box-shadow:0 0 0 1px var(--border),0 30px 80px rgba(0,0,0,.6);touch-action:none;transform-origin:center center}
+#mainCanvas.shaking{animation:shake .5s ease-in-out}
+@keyframes shake{0%,100%{transform:translate(0)}10%{transform:translate(-8px,3px)}20%{transform:translate(8px,-3px)}30%{transform:translate(-6px,5px)}40%{transform:translate(6px,-2px)}50%{transform:translate(-4px,4px)}60%{transform:translate(4px,-4px)}70%{transform:translate(-3px,2px)}80%{transform:translate(3px,-2px)}90%{transform:translate(-2px,1px)}}
+#mainCanvas.spinning{animation:spin360 1s ease-in-out}
+@keyframes spin360{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+#mainCanvas.flipped{transform:scaleX(-1)}
+#mainCanvas.inverted{filter:invert(1)}
+#freezeOverlay{position:absolute;inset:0;background:rgba(100,200,255,.06);border:3px solid rgba(100,200,255,.35);pointer-events:all;display:none;align-items:center;justify-content:center;z-index:20;flex-direction:column;gap:10px;backdrop-filter:blur(1px)}
+#freezeOverlay.active{display:flex}
+.freeze-msg{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#7dd3fc;letter-spacing:-.03em;text-shadow:0 0 20px rgba(125,211,252,.5)}
+.freeze-sub{font-size:.7rem;color:rgba(125,211,252,.7)}
+#confettiCanvas{position:absolute;inset:0;pointer-events:none;z-index:15;width:100%;height:100%}
+#lockOverlay{position:absolute;inset:0;pointer-events:all;z-index:19;display:none;cursor:not-allowed}
+#lockOverlay.active{display:block}
+#blackoutEl{position:absolute;inset:0;background:#000;z-index:18;pointer-events:none;display:none}
+#blackoutEl.active{display:block;animation:bofade 3s forwards}
+@keyframes bofade{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
+
+/* REMOTE CURSORS */
+.r-cursor{position:absolute;pointer-events:none;z-index:5;transition:left 60ms linear,top 60ms linear}
+.r-cursor-label{position:absolute;top:18px;left:4px;font-size:.58rem;padding:2px 7px;border-radius:4px;white-space:nowrap;font-family:'DM Mono',monospace;color:#fff;pointer-events:none}
+
+/* RIGHT PANEL */
+.right-panel{width:196px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.panel-hd{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+.users-list{flex:1;overflow-y:auto;padding:6px}
+.users-list::-webkit-scrollbar{width:3px}
+.users-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.u-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;transition:background .12s}
+.u-row:hover{background:var(--surface)}
+.u-avatar{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0}
+.u-name{font-size:.7rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.u-you{font-size:.55rem;background:var(--border);color:var(--muted);padding:1px 5px;border-radius:4px}
+.u-role{font-size:.5rem;padding:1px 5px;border-radius:4px;font-weight:700}
+.u-role.admin{color:var(--accent);background:rgba(255,79,23,.1)}
+.u-role.owner{color:var(--gold);background:rgba(245,158,11,.1)}
+.panel-footer{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.act-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;text-align:left;transition:all .14s;display:flex;align-items:center;gap:7px}
+.act-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(255,79,23,.05)}
+.act-btn.red:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.05)}
+
+/* ADMIN PANEL */
+#adminPanel{position:fixed;bottom:20px;right:20px;width:340px;background:var(--panel);border:1px solid var(--border);border-radius:16px;z-index:100;box-shadow:0 20px 60px rgba(0,0,0,.8);display:none;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.34,1.2,.64,1)}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#adminPanel.visible{display:flex}
+.ap-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ap-title{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;letter-spacing:-.03em;display:flex;align-items:center;gap:8px}
+.ap-role{font-size:.6rem;padding:2px 8px;border-radius:4px;font-weight:700}
+.ap-role.admin{color:var(--accent);background:rgba(255,79,23,.12);border:1px solid rgba(255,79,23,.25)}
+.ap-role.owner{color:var(--gold);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25)}
+.ap-close{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .13s}
+.ap-close:hover{background:var(--surface);color:var(--text)}
+.ap-tabs{display:flex;border-bottom:1px solid var(--border)}
+.ap-tab{flex:1;padding:10px 0;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:transparent;border:none;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ap-tab:hover{color:var(--text)}
+.ap-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ap-body{padding:14px;max-height:360px;overflow-y:auto}
+.ap-body::-webkit-scrollbar{width:3px}
+.ap-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.tab-pane{display:none;flex-direction:column;gap:8px}
+.tab-pane.active{display:flex}
+.troll-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.troll-btn{padding:10px 8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:.65rem;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.troll-btn .ti{font-size:1.3rem;line-height:1}
+.troll-btn:hover{border-color:var(--accent);background:rgba(255,79,23,.08);transform:scale(1.02)}
+.troll-btn:active{transform:scale(.97)}
+.troll-btn.oo{border-color:rgba(245,158,11,.2)}
+.troll-btn.oo:hover{border-color:var(--gold);background:rgba(245,158,11,.08)}
+.troll-btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.sec-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;margin-bottom:2px}
+.uc-row{display:flex;align-items:center;gap:8px;padding:6px;background:var(--surface);border-radius:8px}
+.uc-av{width:24px;height:24px;border-radius:6px;font-size:.6rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.uc-name{font-size:.7rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uc-kick{padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.05);color:var(--red);font-family:'DM Mono',monospace;font-size:.6rem;cursor:pointer;transition:all .12s}
+.uc-kick:hover{background:rgba(239,68,68,.15)}
+.ctrl-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.ctrl-row:last-child{border-bottom:none}
+.ctrl-lbl{font-size:.7rem;color:var(--text)}
+.ctrl-sub{font-size:.6rem;color:var(--muted);margin-top:2px}
+.tog-btn{padding:5px 14px;border-radius:6px;font-size:.65rem;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s}
+.tog-btn.on{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1)}
+.ann-row{display:flex;gap:6px;margin-top:4px}
+.ann-inp{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.68rem;outline:none;transition:border-color .15s}
+.ann-inp:focus{border-color:var(--accent)}
+.ann-send{padding:7px 12px;border-radius:8px;border:1px solid var(--accent);background:rgba(255,79,23,.1);color:var(--accent);font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;transition:all .15s}
+.ann-send:hover{background:var(--accent);color:#fff}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 22px;font-size:.73rem;color:var(--text);transition:transform .35s cubic-bezier(.34,1.56,.64,1);z-index:300;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ann{background:linear-gradient(135deg,rgba(255,79,23,.15),rgba(245,158,11,.1));border-color:rgba(255,79,23,.4);font-size:.8rem;padding:12px 28px}
+
+/* JOIN MODAL */
+.overlay{position:fixed;inset:0;background:rgba(5,5,6,.92);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;z-index:500;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:420px;width:92%;animation:slideup .35s cubic-bezier(.34,1.2,.64,1)}
+@keyframes slideup{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;letter-spacing:-.05em;margin-bottom:8px;line-height:1}
+.modal-title em{color:var(--accent);font-style:normal}
+.modal-sub{color:var(--muted);font-size:.78rem;line-height:1.7;margin-bottom:30px}
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.field label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.field input{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:.88rem;outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--accent)}
+.join-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;letter-spacing:-.02em;transition:opacity .15s,transform .1s}
+.join-btn:hover{opacity:.88}
+.join-btn:active{transform:scale(.98)}
+.cfg-warn{background:rgba(255,79,23,.08);border:1px solid rgba(255,79,23,.3);border-radius:10px;padding:12px 14px;font-size:.7rem;color:#ff7a50;line-height:1.6;margin-bottom:20px}
+
+/* LOGIN MODAL */
+#loginModal{position:fixed;inset:0;background:rgba(5,5,6,.92);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:600}
+#loginModal.open{display:flex}
+.login-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px 28px;width:320px;animation:slideup .3s cubic-bezier(.34,1.2,.64,1)}
+.login-box h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.04em;margin-bottom:6px}
+.login-box p{color:var(--muted);font-size:.72rem;margin-bottom:22px;line-height:1.6}
+.ltabs{display:flex;gap:6px;margin-bottom:20px}
+.ltab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:'DM Mono',monospace;font-size:.7rem;cursor:pointer;transition:all .15s;text-align:center}
+.ltab.active.admin{border-color:var(--accent);color:var(--accent);background:rgba(255,79,23,.08)}
+.ltab.active.owner{border-color:var(--gold);color:var(--gold);background:rgba(245,158,11,.08)}
+.login-err{color:var(--red);font-size:.68rem;margin-bottom:10px;display:none}
+.login-err.show{display:block}
+.login-actions{display:flex;gap:8px;margin-top:4px}
+.login-submit{flex:1;padding:10px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:opacity .15s}
+.login-submit.admin{background:var(--accent);color:#fff}
+.login-submit.owner{background:var(--gold);color:#000}
+.login-submit:hover{opacity:.85}
+.login-cancel{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:.7rem;cursor:pointer;transition:all .15s}
+.login-cancel:hover{border-color:var(--text);color:var(--text)}
+#secretHint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-size:.55rem;color:rgba(255,255,255,.07);pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- JOIN MODAL -->
+<div class="overlay" id="joinOverlay">
+  <div class="modal">
+    <div class="modal-title">Paint<em>Together</em></div>
+    <p class="modal-sub">One shared canvas. Everyone paints. Everyone sees.<br>Pick a name and jump in.</p>
+    <div id="cfgWarn" class="cfg-warn" style="display:none"><strong>⚠ Firebase not configured.</strong><br>Replace <code>FIREBASE_CONFIG</code> in the script with your Firebase project config.</div>
+    <div class="field"><label>Your Painter Name</label><input type="text" id="nameInput" placeholder="Artist007" maxlength="20" autocomplete="off" autofocus /></div>
+    <button class="join-btn" onclick="joinSession()">Join the Canvas →</button>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal">
+  <div class="login-box">
+    <h2>🔐 Staff Login</h2>
+    <p>Enter your role password to unlock the admin control panel.</p>
+    <div class="ltabs">
+      <div class="ltab active admin" id="ltab-admin" onclick="switchLoginTab('admin')">🛡 Admin</div>
+      <div class="ltab owner" id="ltab-owner" onclick="switchLoginTab('owner')">👑 Owner</div>
+    </div>
+    <div class="field"><label>Password</label><input type="password" id="loginPwInput" placeholder="••••••••" autocomplete="off" /></div>
+    <div class="login-err" id="loginErr">❌ Wrong password. Try again.</div>
+    <div class="login-actions">
+      <button class="login-cancel" onclick="closeLogin()">Cancel</button>
+      <button class="login-submit admin" id="loginSubmitBtn" onclick="doLogin()">🛡 Enter as Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo" id="logoEl" title="Click 5× for staff login">
+    <div class="logo-dot"></div>PaintTogether
+  </div>
+  <div class="header-right">
+    <div class="online-pill"><div class="online-dot"></div><span id="onlineCount">0</span>&nbsp;online</div>
+    <div class="my-chip" id="myChip" style="display:none">
+      <span id="myChipName"></span>
+      <span class="role-badge" id="myRoleBadge" style="display:none"></span>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="tool-btn active" id="btn-pen" onclick="setTool('pen')" title="Pen (P)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')" title="Eraser (E)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16l10-10 7 7-3 4z"/><path d="M6 11L13 18"/></svg>
+    </button>
+    <div class="sep"></div>
+    <div class="size-wrap">
+      <span class="size-label">SIZE</span>
+      <input type="range" class="vert" id="sizeSlider" min="1" max="60" value="6" oninput="setBrushSize(this.value)">
+      <span class="size-val" id="sizeDisplay">6</span>
+    </div>
+    <div class="sep"></div>
+    <div class="palette" id="paletteEl"></div>
+    <div class="sep"></div>
+    <div class="custom-wrap" title="Custom color"><input type="color" id="customColorPicker" value="#000000" oninput="pickCustomColor(this.value)"></div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area" id="canvasArea">
+    <canvas id="mainCanvas" width="1400" height="900"></canvas>
+    <div id="freezeOverlay"><div class="freeze-msg">❄️ Canvas Frozen</div><div class="freeze-sub" id="freezeSub">Admin has frozen the canvas</div></div>
+    <div id="lockOverlay"></div>
+    <div id="blackoutEl"></div>
+    <canvas id="confettiCanvas"></canvas>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-hd">Painters</div>
+    <div class="users-list" id="usersList"></div>
+    <div class="panel-footer">
+      <button class="act-btn" onclick="downloadCanvas()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save as PNG
+      </button>
+      <button class="act-btn red" onclick="askClear()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Clear Canvas
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <div class="ap-header">
+    <div class="ap-title"><span id="apCrown">🛡</span> Control Panel <span class="ap-role admin" id="apRoleBadge">Admin</span></div>
+    <button class="ap-close" onclick="toggleAdminPanel()">✕</button>
+  </div>
+  <div class="ap-tabs">
+    <button class="ap-tab active" onclick="switchTab('troll')">😈 Troll</button>
+    <button class="ap-tab" onclick="switchTab('users')">👥 Users</button>
+    <button class="ap-tab" onclick="switchTab('controls')">⚙️ Controls</button>
+  </div>
+  <div class="ap-body">
+
+    <!-- TROLL -->
+    <div class="tab-pane active" id="tab-troll">
+      <div class="sec-lbl">Visual Chaos</div>
+      <div class="troll-grid">
+        <button class="troll-btn" onclick="troll('shake')"><span class="ti">🫨</span>Shake</button>
+        <button class="troll-btn" onclick="troll('spin')"><span class="ti">🌀</span>Spin</button>
+        <button class="troll-btn" onclick="troll('flip')"><span class="ti">🔄</span>Flip Canvas</button>
+        <button class="troll-btn" onclick="troll('invert')"><span class="ti">🎨</span>Invert Colors</button>
+        <button class="troll-btn" onclick="troll('blackout')"><span class="ti">⬛</span>Blackout</button>
+        <button class="troll-btn" onclick="troll('confetti')"><span class="ti">🎉</span>Confetti</button>
+      </div>
+      <div class="sec-lbl" style="margin-top:10px">Drawing Chaos</div>
+      <div class="troll-grid">
+        <button class="troll-btn" onclick="troll('rainbow')"><span class="ti">🌈</span>Rainbow Mode</button>
+        <button class="troll-btn" onclick="troll('freeze')"><span class="ti">❄️</span>Freeze (30s)</button>
+        <button class="troll-btn" onclick="troll('bomb')"><span class="ti">💥</span>Bomb Canvas</button>
+        <button class="troll-btn" onclick="troll('ghost')"><span class="ti">👻</span>Ghost (fade)</button>
+      </div>
+      <div class="sec-lbl" style="margin-top:10px">👑 Owner Only</div>
+      <div class="troll-grid">
+        <button class="troll-btn oo" id="btn-lag" onclick="troll('lag')"><span class="ti">🐌</span>Lag Mode</button>
+        <button class="troll-btn oo" onclick="troll('tiny')"><span class="ti">🔬</span>Force Tiny</button>
+        <button class="troll-btn oo" onclick="troll('huge')"><span class="ti">🔭</span>Force Huge</button>
+        <button class="troll-btn oo" onclick="troll('nuke')"><span class="ti">☢️</span>Nuke All</button>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="tab-pane" id="tab-users">
+      <div class="sec-lbl">Active Painters</div>
+      <div id="apUsersList" style="display:flex;flex-direction:column;gap:5px;margin-top:6px"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="tab-pane" id="tab-controls">
+      <div class="ctrl-row">
+        <div><div class="ctrl-lbl">🔒 Lock Canvas</div><div class="ctrl-sub">Prevent users from painting</div></div>
+        <button class="tog-btn" id="lockBtn" onclick="toggleLock()">OFF</button>
+      </div>
+      <div class="ctrl-row">
+        <div><div class="ctrl-lbl">📢 Announce</div><div class="ctrl-sub">Toast message to everyone</div></div>
+      </div>
+      <div class="ann-row">
+        <input type="text" class="ann-inp" id="announceInput" placeholder="Type a message…" maxlength="80">
+        <button class="ann-send" onclick="sendAnnounce()">Send</button>
+      </div>
+      <div class="ctrl-row" style="margin-top:6px">
+        <div><div class="ctrl-lbl">🗑 Clear Canvas</div><div class="ctrl-sub">Wipe for everyone</div></div>
+        <button class="tog-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="askClear()">CLEAR</button>
+      </div>
+      <div id="ownerControls" style="display:none">
+        <div class="ctrl-row" style="margin-top:6px">
+          <div><div class="ctrl-lbl">👑 Change Admin PW</div><div class="ctrl-sub">Session only</div></div>
+        </div>
+        <div class="ann-row">
+          <input type="password" class="ann-inp" id="newAdminPw" placeholder="New admin password">
+          <button class="ann-send" onclick="changeAdminPw()">Set</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="secretHint">Click logo 5× for staff login · Ctrl+Shift+L</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// ╔══════════════════════════════════════════════════════╗
+// ║  🔧  FIREBASE CONFIG — Replace with your own        ║
+// ╚══════════════════════════════════════════════════════╝
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDS5ulkx6qs9L9DB3DMXysvAUo0nkes2HY",
+  authDomain:        "painttogether-1da13.firebaseapp.com",
+  databaseURL:       "https://painttogether-1da13-default-rtdb.firebaseio.com",
+  projectId:         "painttogether-1da13",
+  storageBucket:     "painttogether-1da13.firebasestorage.app",
+  messagingSenderId: "467318747653",
+  appId:             "1:467318747653:web:bdca47ed97ba56fbffe26c"
+};
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  🔑  PASSWORDS — Change before deploying!           ║
+// ╚══════════════════════════════════════════════════════╝
+let PASSWORDS = { admin: "admin123", owner: "owner999" };
+
+// ── Constants ─────────────────────────────────────────
+const PALETTE = ['#000000','#ffffff','#ef4444','#f97316','#f59e0b','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#64748b','#d4c5a9'];
+const USER_COLORS = ['#ff4f17','#7c3aed','#06b6d4','#22c55e','#f59e0b','#ec4899','#3b82f6','#ef4444'];
+
+// ── State ─────────────────────────────────────────────
+let db=null,myId=null,myName='',myRole='user';
+let myColor=USER_COLORS[Math.floor(Math.random()*USER_COLORS.length)];
+let tool='pen',brushSize=6,brushColor='#000000';
+let drawing=false,strokeId=null,strokePts=[],lastPt=null,lastFlush=0,loadTime=0;
+let activeUsers={},adminPanelOpen=false,activeTab='troll';
+let canvasLocked=false,rainbowActive=false,lagMode=false,frozen=false,freezeTimer=null;
+let flipped=false,inverted=false,loginTab='admin',lockState=false;
+let lastTrollTs={},lastClearTs=0;
+
+const canvas=document.getElementById('mainCanvas');
+const ctx=canvas.getContext('2d');
+ctx.lineCap='round'; ctx.lineJoin='round';
+
+// ── Palette ───────────────────────────────────────────
+(function(){
+  const el=document.getElementById('paletteEl');
+  PALETTE.forEach(c=>{
+    const sw=document.createElement('div');
+    sw.className='swatch'+(c===brushColor?' active':'');
+    sw.style.background=c;
+    if(c==='#ffffff') sw.style.boxShadow='inset 0 0 0 1px #444';
+    sw.onclick=()=>selectColor(c,sw);
+    el.appendChild(sw);
+  });
+})();
+
+function selectColor(c,el){
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+  brushColor=c;
+  if(tool==='eraser') setTool('pen');
+}
+function pickCustomColor(c){
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  brushColor=c;
+  if(tool==='eraser') setTool('pen');
+}
+function setTool(t){
+  tool=t;
+  ['pen','eraser'].forEach(n=>document.getElementById('btn-'+n).classList.toggle('active',n===t));
+  canvas.style.cursor=t==='eraser'?'cell':'crosshair';
+}
+function setBrushSize(v){ brushSize=+v; document.getElementById('sizeDisplay').textContent=v; }
+function isConfigured(){ return FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.apiKey!=='YOUR_API_KEY'; }
+
+// ── Join ──────────────────────────────────────────────
+function joinSession(){
+  const nv=document.getElementById('nameInput').value.trim();
+  myName=nv||'Artist'+Math.floor(Math.random()*999);
+  myId=uid();
+  if(!isConfigured()){ document.getElementById('cfgWarn').style.display='block'; showToast('⚠ Firebase config missing'); return; }
+  try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); }
+  catch(e){ showToast('Firebase error: '+e.message); return; }
+  document.getElementById('joinOverlay').style.display='none';
+  const chip=document.getElementById('myChip');
+  chip.style.display='flex';
+  document.getElementById('myChipName').textContent=myName;
+  loadTime=Date.now();
+  const me=db.ref('/users/'+myId);
+  me.set({name:myName,color:myColor,role:'user',joined:Date.now()});
+  me.onDisconnect().remove();
+  db.ref('/cursors/'+myId).onDisconnect().remove();
+  loadStrokes().then(()=>{ listenStrokes(); listenClear(); });
+  listenUsers(); listenCursors(); listenTrollEvents(); listenLock(); listenAnnounce(); listenKick();
+  setupInputs();
+  showToast('Welcome, '+myName+' 🎨');
+}
+
+// ── Secret login ──────────────────────────────────────
+let logoClicks=0,logoTimer;
+document.getElementById('logoEl').addEventListener('click',()=>{
+  logoClicks++; clearTimeout(logoTimer);
+  logoTimer=setTimeout(()=>{ logoClicks=0; },1500);
+  if(logoClicks>=5){ logoClicks=0; openLogin(); }
+});
+function openLogin(){
+  if(!myId){ showToast('Join the canvas first!'); return; }
+  document.getElementById('loginModal').classList.add('open');
+  document.getElementById('loginPwInput').value='';
+  document.getElementById('loginErr').classList.remove('show');
+  setTimeout(()=>document.getElementById('loginPwInput').focus(),100);
+}
+function closeLogin(){ document.getElementById('loginModal').classList.remove('open'); }
+function switchLoginTab(tab){
+  loginTab=tab;
+  ['admin','owner'].forEach(t=>{
+    const el=document.getElementById('ltab-'+t);
+    el.className='ltab'+(t===tab?' active '+t:'');
+  });
+  const btn=document.getElementById('loginSubmitBtn');
+  btn.className='login-submit '+tab;
+  btn.textContent=tab==='owner'?'👑 Enter as Owner':'🛡 Enter as Admin';
+  document.getElementById('loginErr').classList.remove('show');
+}
+function doLogin(){
+  const pw=document.getElementById('loginPwInput').value;
+  if(pw===PASSWORDS[loginTab]){
+    myRole=loginTab; closeLogin(); applyRole();
+    showToast(loginTab==='owner'?'👑 Owner access granted!':'🛡 Admin access granted!');
+    if(db) db.ref('/users/'+myId+'/role').set(myRole);
+  } else {
+    document.getElementById('loginErr').classList.add('show');
+    document.getElementById('loginPwInput').value='';
+    document.getElementById('loginPwInput').focus();
+  }
+}
+document.getElementById('loginPwInput').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); if(e.key==='Escape') closeLogin(); });
+
+function applyRole(){
+  const badge=document.getElementById('myRoleBadge');
+  badge.style.display=''; badge.className='role-badge '+myRole;
+  badge.textContent=myRole==='owner'?'👑 Owner':'🛡 Admin';
+  document.getElementById('apCrown').textContent=myRole==='owner'?'👑':'🛡';
+  const apB=document.getElementById('apRoleBadge');
+  apB.className='ap-role '+myRole;
+  apB.textContent=myRole==='owner'?'Owner':'Admin';
+  const isOwner=myRole==='owner';
+  document.getElementById('ownerControls').style.display=isOwner?'block':'none';
+  document.querySelectorAll('.troll-btn.oo').forEach(b=>b.disabled=!isOwner);
+  document.getElementById('adminPanel').classList.add('visible');
+  adminPanelOpen=true;
+}
+
+function toggleAdminPanel(){
+  const p=document.getElementById('adminPanel');
+  if(adminPanelOpen){ p.classList.remove('visible'); adminPanelOpen=false; }
+  else { if(myRole==='user'){showToast('Not logged in as staff');return;} p.classList.add('visible'); adminPanelOpen=true; }
+}
+function switchTab(name){
+  activeTab=name;
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ap-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx=['troll','users','controls'].indexOf(name);
+  document.querySelectorAll('.ap-tab')[idx].classList.add('active');
+  if(name==='users') renderApUsers();
+}
+
+// ── Troll system ──────────────────────────────────────
+function troll(type){
+  if(!db||myRole==='user'){ showToast('Admins only!'); return; }
+  const ooOnly=['lag','tiny','huge','nuke'];
+  if(ooOnly.includes(type)&&myRole!=='owner'){ showToast('👑 Owner only!'); return; }
+  db.ref('/trollEvent').set({type,ts:Date.now(),by:myId,byName:myName});
+  applyTrollEffect(type,myId);
+}
+
+function listenTrollEvents(){
+  db.ref('/trollEvent').on('value',snap=>{
+    const ev=snap.val();
+    if(!ev) return;
+    if(Date.now()-ev.ts>3000) return;
+    if(ev.by===myId) return;
+    applyTrollEffect(ev.type,ev.by);
+  });
+}
+
+function applyTrollEffect(type,by){
+  const key=type+':'+by, now=Date.now();
+  if(lastTrollTs[key]&&now-lastTrollTs[key]<500) return;
+  lastTrollTs[key]=now;
+  switch(type){
+    case 'shake':
+      canvas.classList.remove('shaking'); void canvas.offsetWidth; canvas.classList.add('shaking');
+      setTimeout(()=>canvas.classList.remove('shaking'),600); showToast('🫨 Shake!'); break;
+    case 'spin':
+      canvas.classList.remove('spinning'); void canvas.offsetWidth; canvas.classList.add('spinning');
+      setTimeout(()=>canvas.classList.remove('spinning'),1100); showToast('🌀 Spin!'); break;
+    case 'flip':
+      flipped=!flipped; canvas.classList.toggle('flipped',flipped);
+      showToast(flipped?'🔄 Canvas flipped!':'🔄 Canvas unflipped'); break;
+    case 'invert':
+      inverted=!inverted; canvas.classList.toggle('inverted',inverted);
+      showToast(inverted?'🎨 Colors inverted!':'🎨 Colors restored'); break;
+    case 'blackout':
+      const bo=document.getElementById('blackoutEl');
+      bo.className=''; void bo.offsetWidth; bo.className='active';
+      setTimeout(()=>{ bo.className=''; },3200); showToast('⬛ Blackout!'); break;
+    case 'confetti':
+      launchConfetti(); showToast('🎉 Confetti!'); break;
+    case 'rainbow':
+      rainbowActive=!rainbowActive;
+      showToast(rainbowActive?'🌈 Rainbow mode ON — brush is rainbow!':'🌈 Rainbow mode OFF'); break;
+    case 'freeze':
+      if(myRole!=='user'){ showToast('❄️ Freeze sent!'); break; }
+      frozen=true;
+      document.getElementById('freezeOverlay').classList.add('active');
+      document.getElementById('freezeSub').textContent='Canvas frozen for 30 seconds…';
+      clearTimeout(freezeTimer);
+      freezeTimer=setTimeout(()=>{ frozen=false; document.getElementById('freezeOverlay').classList.remove('active'); },30000);
+      showToast('❄️ You are frozen for 30s!'); break;
+    case 'bomb':
+      bombCanvas(); showToast('💥 BOOM!'); break;
+    case 'ghost':
+      ctx.save(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.fillRect(0,0,canvas.width,canvas.height); ctx.restore(); showToast('👻 Ghost fade!'); break;
+    case 'lag':
+      lagMode=!lagMode; showToast(lagMode?'🐌 Lag mode ON — users have 800ms delay!':'🐌 Lag mode OFF'); break;
+    case 'tiny':
+      if(myRole==='user'){ brushSize=1; document.getElementById('sizeSlider').value=1; document.getElementById('sizeDisplay').textContent='1'; showToast('🔬 Your brush is now tiny!'); } break;
+    case 'huge':
+      if(myRole==='user'){ brushSize=50; document.getElementById('sizeSlider').value=50; document.getElementById('sizeDisplay').textContent='50'; showToast('🔭 Your brush is HUGE!'); } break;
+    case 'nuke':
+      if(db){ db.ref('/strokes').remove(); db.ref('/clearEvent').set({ts:Date.now(),uid:myId,name:myName}); ctx.clearRect(0,0,canvas.width,canvas.height); flipped=false; inverted=false; rainbowActive=false; canvas.className=''; showToast('☢️ NUKED — everything wiped!'); } break;
+  }
+}
+
+// ── Bomb ──────────────────────────────────────────────
+function bombCanvas(){
+  const bx=Math.random()*canvas.width, by=Math.random()*canvas.height;
+  let r=0;
+  const cols=['#ff4444','#ff8800','#ffdd00','#ff4444','#ffaa00'];
+  function frame(){
+    if(r>130) return;
+    ctx.save(); ctx.globalCompositeOperation='source-over';
+    cols.forEach((c,i)=>{
+      if(r-i*18<0) return;
+      ctx.beginPath(); ctx.arc(bx,by,r-i*18,0,Math.PI*2);
+      ctx.fillStyle=c; ctx.globalAlpha=Math.max(0,1-r/130); ctx.fill();
+    });
+    ctx.restore(); r+=5; requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ── Confetti ──────────────────────────────────────────
+function launchConfetti(){
+  const cc=document.getElementById('confettiCanvas');
+  const cctx=cc.getContext('2d');
+  cc.width=cc.offsetWidth; cc.height=cc.offsetHeight;
+  const pcs=Array.from({length:130},()=>({
+    x:Math.random()*cc.width, y:-10,
+    vx:(Math.random()-.5)*4, vy:Math.random()*4+2,
+    color:PALETTE[Math.floor(Math.random()*PALETTE.length)],
+    size:Math.random()*8+4, rot:Math.random()*360, rs:(Math.random()-.5)*8
+  }));
+  let f=0;
+  function frame(){
+    cctx.clearRect(0,0,cc.width,cc.height);
+    pcs.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.rot+=p.rs; p.vy+=0.1;
+      cctx.save(); cctx.translate(p.x,p.y); cctx.rotate(p.rot*Math.PI/180);
+      cctx.fillStyle=p.color; cctx.globalAlpha=Math.max(0,1-f/90);
+      cctx.fillRect(-p.size/2,-p.size/2,p.size,p.size/2); cctx.restore();
+    });
+    f++; if(f<100) requestAnimationFrame(frame); else cctx.clearRect(0,0,cc.width,cc.height);
+  }
+  frame();
+}
+
+// ── Lock/Kick/Announce ────────────────────────────────
+function toggleLock(){
+  if(!db||myRole==='user') return;
+  lockState=!lockState;
+  db.ref('/canvasLock').set({locked:lockState,by:myId,name:myName,ts:Date.now()});
+  document.getElementById('lockBtn').textContent=lockState?'ON':'OFF';
+  document.getElementById('lockBtn').classList.toggle('on',lockState);
+}
+function listenLock(){
+  db.ref('/canvasLock').on('value',snap=>{
+    const v=snap.val(); const locked=v&&v.locked;
+    canvasLocked=locked&&myRole==='user';
+    document.getElementById('lockOverlay').classList.toggle('active',!!canvasLocked);
+    if(locked&&myRole==='user') showToast('🔒 Canvas locked by admin');
+  });
+}
+function sendAnnounce(){
+  if(!db||myRole==='user') return;
+  const msg=document.getElementById('announceInput').value.trim();
+  if(!msg) return;
+  db.ref('/announce').set({msg,by:myName,ts:Date.now()});
+  document.getElementById('announceInput').value='';
+}
+function listenAnnounce(){
+  db.ref('/announce').on('value',snap=>{
+    const v=snap.val(); if(!v) return;
+    if(Date.now()-v.ts>5000) return;
+    showToast('📢 '+v.by+': '+v.msg,'ann');
+  });
+}
+function listenKick(){
+  db.ref('/kicks/'+myId).on('value',snap=>{
+    if(snap.val()){ showToast('👢 You were kicked!'); setTimeout(()=>{ db.ref('/users/'+myId).remove(); location.reload(); },2500); }
+  });
+}
+function kickUser(targetId){
+  if(!db||myRole==='user') return;
+  if(targetId===myId){ showToast('Cannot kick yourself'); return; }
+  db.ref('/kicks/'+targetId).set({by:myId,ts:Date.now()});
+  showToast('👢 User kicked');
+  setTimeout(()=>db.ref('/kicks/'+targetId).remove(),5000);
+}
+function changeAdminPw(){
+  if(myRole!=='owner') return;
+  const np=document.getElementById('newAdminPw').value;
+  if(np.length<4){ showToast('Password too short!'); return; }
+  PASSWORDS.admin=np; document.getElementById('newAdminPw').value='';
+  showToast('✅ Admin password changed (this session)');
+}
+
+// ── Render admin user list ────────────────────────────
+function renderApUsers(){
+  const list=document.getElementById('apUsersList'); list.innerHTML='';
+  Object.entries(activeUsers).forEach(([id,u])=>{
+    const row=document.createElement('div'); row.className='uc-row';
+    row.innerHTML=`<div class="uc-av" style="background:${u.color||'#555'}">${(u.name||'?')[0].toUpperCase()}</div><div class="uc-name">${esc(u.name||'?')}${id===myId?' (you)':''}</div>${id!==myId?`<button class="uc-kick" onclick="kickUser('${id}')">Kick</button>`:''}`;
+    list.appendChild(row);
+  });
+}
+
+// ── Canvas drawing ────────────────────────────────────
+function getPos(e){
+  const rect=canvas.getBoundingClientRect();
+  const src=e.touches?e.touches[0]:e;
+  return{ x:(src.clientX-rect.left)*(canvas.width/rect.width), y:(src.clientY-rect.top)*(canvas.height/rect.height) };
+}
+function setupInputs(){
+  canvas.addEventListener('mousedown',onDown);
+  canvas.addEventListener('mousemove',onMove);
+  canvas.addEventListener('mouseup',onUp);
+  canvas.addEventListener('mouseleave',onUp);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
+  canvas.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
+  window.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT') return;
+    if(e.key==='p'||e.key==='P') setTool('pen');
+    if(e.key==='e'||e.key==='E') setTool('eraser');
+    if(e.key==='['){setBrushSize(Math.max(1,brushSize-2));document.getElementById('sizeSlider').value=brushSize;}
+    if(e.key===']'){setBrushSize(Math.min(60,brushSize+2));document.getElementById('sizeSlider').value=brushSize;}
+    if(e.ctrlKey&&e.shiftKey&&e.key==='L') openLogin();
+  });
+  canvas.addEventListener('mousemove',throttle(e=>{
+    if(!db||!myId) return;
+    db.ref('/cursors/'+myId).set({x:e.clientX,y:e.clientY,name:myName,color:myColor});
+  },60));
+}
+function getRainbowColor(){ const t=Date.now()/500; return `rgb(${Math.floor(Math.sin(t)*127+128)},${Math.floor(Math.sin(t+2)*127+128)},${Math.floor(Math.sin(t+4)*127+128)})`; }
+function getEffBrushColor(){ return rainbowActive&&tool!=='eraser'?getRainbowColor():brushColor; }
+function applyComposite(t){
+  if(t==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.fillStyle='rgba(0,0,0,1)'; }
+  else { ctx.globalCompositeOperation='source-over'; const c=getEffBrushColor(); ctx.strokeStyle=c; ctx.fillStyle=c; }
+  ctx.lineWidth=brushSize;
+}
+function localDot(p){ ctx.save(); applyComposite(tool); ctx.beginPath(); ctx.arc(p.x,p.y,brushSize/2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+function localLine(a,b){ ctx.save(); applyComposite(tool); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore(); }
+function onDown(e){ if(!myId||frozen||canvasLocked) return; drawing=true; strokeId=uid(); strokePts=[]; lastPt=null; const pos=getPos(e); strokePts.push(pos); localDot(pos); lastPt=pos; }
+function onMove(e){ if(!drawing||!myId||frozen||canvasLocked) return; const pos=getPos(e); if(lastPt) localLine(lastPt,pos); lastPt=pos; strokePts.push(pos); const now=Date.now(); if(now-lastFlush>(lagMode?800:55)){lastFlush=now;flushStroke(false);} }
+function onUp(){ if(!drawing) return; drawing=false; if(strokePts.length) flushStroke(true); strokePts=[]; strokeId=null; lastPt=null; }
+function flushStroke(complete){ if(!db||!strokeId||!strokePts.length) return; db.ref('/strokes/'+strokeId).set({uid:myId,color:tool==='eraser'?null:getEffBrushColor(),size:brushSize,tool,pts:strokePts,ts:Date.now(),done:complete}); }
+
+// ── Stroke render ─────────────────────────────────────
+function drawStroke(s){
+  if(!s||!s.pts||s.pts.length<1) return;
+  const pts=s.pts;
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=s.size||4;
+  if(s.tool==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.fillStyle='rgba(0,0,0,1)'; }
+  else { ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=s.color||'#000'; ctx.fillStyle=s.color||'#000'; }
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+  if(pts.length===1){ ctx.arc(pts[0].x,pts[0].y,(s.size||4)/2,0,Math.PI*2); ctx.fill(); }
+  else { for(let i=1;i<pts.length;i++){ if(i<pts.length-1){ ctx.quadraticCurveTo(pts[i].x,pts[i].y,(pts[i].x+pts[i+1].x)/2,(pts[i].y+pts[i+1].y)/2); } else { ctx.lineTo(pts[i].x,pts[i].y); } } ctx.stroke(); }
+  ctx.restore();
+}
+function loadStrokes(){ return db.ref('/strokes').orderByChild('ts').once('value').then(snap=>{ const d=snap.val(); if(d) Object.values(d).sort((a,b)=>a.ts-b.ts).forEach(drawStroke); }); }
+async function redrawAll(){ const snap=await db.ref('/strokes').orderByChild('ts').once('value'); ctx.clearRect(0,0,canvas.width,canvas.height); const d=snap.val(); if(d) Object.values(d).sort((a,b)=>a.ts-b.ts).forEach(drawStroke); }
+function listenStrokes(){
+  db.ref('/strokes').orderByChild('ts').startAt(loadTime+1).on('child_added',snap=>{ const s=snap.val(); if(s&&s.uid!==myId) drawStroke(s); });
+  db.ref('/strokes').on('child_changed',snap=>{ const s=snap.val(); if(s&&s.uid!==myId) redrawAll(); });
+}
+function listenClear(){
+  db.ref('/clearEvent').on('value',snap=>{ const ev=snap.val(); if(!ev||ev.ts<=lastClearTs) return; lastClearTs=ev.ts; ctx.clearRect(0,0,canvas.width,canvas.height); db.ref('/strokes').remove(); if(ev.uid!==myId) showToast((ev.name||'Someone')+' cleared the canvas'); });
+}
+function askClear(){
+  if(!db) return;
+  if(!confirm('Clear the canvas for everyone?')) return;
+  db.ref('/strokes').remove();
+  db.ref('/clearEvent').set({ts:Date.now(),uid:myId,name:myName});
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+// ── Users ─────────────────────────────────────────────
+function listenUsers(){
+  db.ref('/users').on('value',snap=>{ activeUsers=snap.val()||{}; renderUsers(); document.getElementById('onlineCount').textContent=Object.keys(activeUsers).length; if(activeTab==='users') renderApUsers(); });
+}
+function renderUsers(){
+  const list=document.getElementById('usersList'); list.innerHTML='';
+  Object.entries(activeUsers).forEach(([id,u])=>{
+    const row=document.createElement('div'); row.className='u-row';
+    const roleTag=u.role&&u.role!=='user'?`<span class="u-role ${u.role}">${u.role==='owner'?'👑':'🛡'}</span>`:'';
+    row.innerHTML=`<div class="u-avatar" style="background:${u.color||'#555'}">${(u.name||'?')[0].toUpperCase()}</div><div class="u-name">${esc(u.name||'Anonymous')}</div>${roleTag}${id===myId?'<span class="u-you">you</span>':''}`;
+    list.appendChild(row);
+  });
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ── Cursors ───────────────────────────────────────────
+const cursorEls={};
+function listenCursors(){
+  db.ref('/cursors').on('child_added',updateCursor);
+  db.ref('/cursors').on('child_changed',updateCursor);
+  db.ref('/cursors').on('child_removed',snap=>{ if(cursorEls[snap.key]){cursorEls[snap.key].remove();delete cursorEls[snap.key];} });
+}
+function updateCursor(snap){
+  const id=snap.key; if(id===myId) return;
+  const d=snap.val(); if(!d) return;
+  const area=document.getElementById('canvasArea');
+  let el=cursorEls[id];
+  if(!el){ el=document.createElement('div'); el.className='r-cursor'; el.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="${d.color||'#888'}" stroke="#fff" stroke-width="2"/></svg><div class="r-cursor-label" style="background:${d.color||'#888'}">${esc(d.name||'?')}</div>`; area.appendChild(el); cursorEls[id]=el; }
+  const rect=area.getBoundingClientRect();
+  el.style.left=(d.x-rect.left)+'px'; el.style.top=(d.y-rect.top)+'px';
+}
+
+// ── Download ──────────────────────────────────────────
+function downloadCanvas(){
+  const tmp=document.createElement('canvas'); tmp.width=canvas.width; tmp.height=canvas.height;
+  const tc=tmp.getContext('2d'); tc.fillStyle='#ffffff'; tc.fillRect(0,0,tmp.width,tmp.height); tc.drawImage(canvas,0,0);
+  const a=document.createElement('a'); a.download='painttogether-'+Date.now()+'.png'; a.href=tmp.toDataURL('image/png'); a.click();
+}
+
+// ── Toast ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show '+(type||'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── Utils ─────────────────────────────────────────────
+function uid(){ return Math.random().toString(36).slice(2,11)+Date.now().toString(36); }
+function throttle(fn,ms){ let l=0; return function(...a){ const n=Date.now(); if(n-l<ms) return; l=n; fn(...a); }; }
+
+// ── Init ──────────────────────────────────────────────
+document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') joinSession(); });
+if(!isConfigured()) document.getElementById('cfgWarn').style.display='block';
+window.addEventListener('resize',()=>{ const cc=document.getElementById('confettiCanvas'); cc.width=cc.offsetWidth; cc.height=cc.offsetHeight; });
+</script>
+</body>
+</html>
