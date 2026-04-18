@@ -37,13 +37,14 @@ header{height:50px;display:flex;align-items:center;justify-content:space-between
 .workspace{display:flex;flex:1;overflow:hidden}
 
 /* EXPANDABLE PANELS */
-.toolbar{transition:width .3s cubic-bezier(.4,0,.2,1),opacity .2s,padding .3s}
-.toolbar.collapsed{width:20px;overflow:hidden}
-.toolbar.collapsed .tool-btn,.toolbar.collapsed .sep,.toolbar.collapsed .size-wrap,.toolbar.collapsed .palette,.toolbar.collapsed .custom-wrap,.toolbar.collapsed .undo-redo{opacity:0;pointer-events:none}
-.expand-left{position:absolute;left:60px;top:50%;transform:translateY(-50%);z-index:10;width:16px;height:40px;background:var(--panel);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .3s}
-.expand-left:hover{color:var(--accent)}
-.toolbar.collapsed~.expand-left{left:0}
-.toolbar.collapsed~.expand-left svg{transform:rotate(180deg)}
+.toolbar{position:relative;z-index:5}
+.toolbar-tab{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:6;width:20px;height:60px;background:var(--panel);border:1px solid var(--border);border-left:none;border-radius:0 10px 10px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .25s cubic-bezier(.4,0,.2,1)}
+.toolbar-tab:hover{color:var(--accent);width:24px}
+.toolbar-tab.open{left:60px}
+.toolbar-tab.open svg{transform:rotate(180deg)}
+.toolbar-tab-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);transition:all .25s}
+.toolbar-tab.open .toolbar-tab-label{opacity:0}
+.toolbar-tab:hover .toolbar-tab-label{color:var(--text)}
 .expand-left-expand{top:auto;bottom:50px}
 .expand-left-collapse{top:auto;bottom:10px}
 
@@ -190,13 +191,13 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
 .r-cursor-label:hover{transform:translateY(-2px)}
 
 /* RIGHT PANEL */
-.right-panel{width:196px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .3s cubic-bezier(.4,0,.2,1),opacity .2s,margin .3s}
-.right-panel.collapsed{width:0;margin-left:-1px;opacity:0;overflow:hidden}
-.right-panel.collapsed .panel-hd,.right-panel.collapsed .users-list,.right-panel.collapsed .panel-footer{opacity:0;pointer-events:none}
-.expand-right{position:absolute;right:196px;top:50%;transform:translateY(-50%);z-index:10;width:16px;height:40px;background:var(--panel);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .3s}
-.expand-right:hover{color:var(--accent)}
-.right-panel.collapsed~.expand-right{right:0}
-.right-panel.collapsed~.expand-right svg{transform:rotate(180deg)}
+.right-panel{width:196px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:all .25s cubic-bezier(.4,0,.2,1),opacity .2s}
+.right-panel-tab{position:fixed;right:196px;top:50%;transform:translateY(-50%);z-index:6;width:20px;height:60px;background:var(--panel);border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .25s cubic-bezier(.4,0,.2,1)}
+.right-panel-tab:hover{color:var(--accent);width:24px}
+.right-panel-tab.closed{right:0px}
+.right-panel-tab.closed svg{transform:rotate(180deg)}
+.right-panel-tab-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);transition:all .25s}
+.right-panel-tab.closed .right-panel-tab-label{opacity:0}
 .panel-hd{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);padding:14px 14px 10px;border-bottom:1px solid var(--border)}
 .users-list{flex:1;overflow-y:auto;padding:6px}
 .users-list::-webkit-scrollbar{width:3px}
@@ -363,16 +364,11 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
 
 <div class="workspace">
   <!-- TOOLBAR -->
-  <div class="toolbar" id="toolbar">
-    <button class="expand-left" onclick="toggleLeftPanel()" title="Toggle tools panel">
+  <div class="toolbar-tab" id="toolbarTab" onclick="toggleToolbar()">
+      <span class="toolbar-tab-label">TOOLS</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <button class="expand-left" onclick="expandAllSections()" title="Expand all" style="bottom:10px">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
-    </button>
-    <button class="expand-left" onclick="collapseAllSections()" title="Collapse all" style="bottom:40px">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
+    </div>
+    <div class="toolbar" id="toolbar" style="display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:2px;flex-shrink:0;overflow-y:auto;overflow-x:hidden">
     <div class="tool-section" id="section-brush">
       <div class="tool-section-header" onclick="toggleToolSection('brush')" title="Toggle brushes">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
@@ -489,9 +485,10 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
 
   <!-- RIGHT PANEL -->
   <div class="right-panel" id="rightPanel">
-    <button class="expand-right" onclick="toggleRightPanel()" title="Toggle players panel">
+    <div class="right-panel-tab" id="rightPanelTab" onclick="toggleRightPanel()">
+      <span class="right-panel-tab-label">PLAYERS</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
+    </div>
     <div class="panel-hd">Painters</div>
     <div class="users-list" id="usersList"></div>
     <div class="panel-footer">
@@ -1227,16 +1224,19 @@ function renderUsers(){
 function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 // ── PANEL TOGGLE ─────────────────────────────────────
-function toggleLeftPanel(){
+function toggleToolbar(){
   const tb=document.getElementById('toolbar');
-  tb.classList.toggle('collapsed');
-  const btn=tb.querySelector('.expand-left svg');
-  btn.style.transform=tb.classList.contains('collapsed')?'rotate(180deg)':'';
-  setTimeout(()=>tb.classList.contains('collapsed')&&(btn.style.opacity='0'),200);
+  const tab=document.getElementById('toolbarTab');
+  const isOpen=tb.style.display!=='none';
+  tb.style.display=isOpen?'none':'flex';
+  tab.classList.toggle('open',!isOpen);
 }
 function toggleRightPanel(){
   const rp=document.getElementById('rightPanel');
-  rp.classList.toggle('collapsed');
+  const tab=document.getElementById('rightPanelTab');
+  const isHidden=rp.style.display==='none';
+  rp.style.display=isHidden?'flex':'none';
+  tab.classList.toggle('closed',!isHidden);
 }
 function toggleToolSection(id){
   const sec=document.getElementById('section-'+id);
