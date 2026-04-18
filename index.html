@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PaintTogether — Live Canvas</title>
+<title>PaintTogether — Open World Canvas</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -39,6 +39,8 @@ header{height:50px;display:flex;align-items:center;justify-content:space-between
 .tool-btn{width:42px;height:42px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .13s;flex-shrink:0}
 .tool-btn:hover{background:var(--surface);color:var(--text)}
 .tool-btn.active{background:var(--accent);border-color:rgba(255,255,255,.1);color:#fff;box-shadow:0 0 12px rgba(255,79,23,.35)}
+.tool-btn[data-tool="highlighter"]::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:16px;height:3px;background:rgba(255,255,150,.8);border-radius:1px}
+.tool-btn[data-tool="spray"]::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:8px;height:8px;background:currentColor;border-radius:50%;opacity:.4}
 .size-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0 8px}
 .size-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .size-val{font-size:.65rem;color:var(--text);font-weight:500}
@@ -51,6 +53,84 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
 .custom-wrap{width:24px;height:24px;border-radius:7px;border:2px dashed var(--border);overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;transition:border-color .15s}
 .custom-wrap:hover{border-color:var(--accent)}
 .custom-wrap input[type=color]{position:absolute;width:200%;height:200%;top:-50%;left:-50%;border:none;padding:0;cursor:pointer;background:none}
+
+/* XP BAR */
+.xp-bar-wrap{padding:8px 12px;border-bottom:1px solid var(--border);display:none;align-items:center;gap:8px}
+.xp-bar-wrap.show{display:flex}
+.xp-level{font-family:'Syne',sans-serif;font-weight:800;font-size:.8rem;background:var(--accent);border-radius:6px;padding:2px 8px;color:#fff}
+.xp-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;position:relative}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--accent),#ffaa00);border-radius:4px;transition:width .3s;width:0%}
+.xp-text{font-size:.6rem;color:var(--muted);min-width:45px;text-align:right}
+
+/* CHAT */
+.chat-panel{position:absolute;bottom:10px;left:60px;z-index:25;display:none;flex-direction:column;gap:6px;max-width:280px}
+.chat-panel.show{display:flex}
+.chat-msg{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-size:.65rem;animation:chatIn .2s ease}
+@keyframes chatIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes emotePop{0%{opacity:0;transform:translate(-50%,-50%)scale(0.5)}50%{opacity:1;transform:translate(-50%,-50%)scale(1.2)}100%{opacity:0;transform:translate(-50%,-50%)scale(1.5)}}
+.chat-msg .chat-name{font-weight:700;margin-right:4px}
+.chat-msg .chat-text{color:var(--text)}
+.chat-input-wrap{display:flex;gap:6px}
+.chat-input{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:8px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:.65rem;outline:none}
+.chat-input:focus{border-color:var(--accent)}
+.chat-send{padding:8px 12px;border-radius:50%;border:1px solid var(--accent);background:rgba(255,79,23,.15);color:var(--accent);cursor:pointer;font-size:.8rem}
+
+/* EMOTE WHEEL */
+.emote-wheel{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:30;display:none;gap:4px;background:var(--panel);border:1px solid var(--border);border-radius:50px;padding:8px 12px}
+.emote-wheel.show{display:flex}
+.emote-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.9rem;transition:transform .1s}
+.emote-btn:hover{transform:scale(1.2);border-color:var(--accent)}
+
+/* ACHIEVEMENTS */
+.ach-panel{position:fixed;top:50px;right:20px;width:320px;background:var(--panel);border:1px solid var(--border);border-radius:16px;z-index:100;display:none;flex-direction:column;overflow:hidden;animation:slideUp .3s}
+.ach-panel.show{display:flex}
+.ach-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ach-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem}
+.ach-close{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
+.ach-body{padding:12px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.ach-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;opacity:.5}
+.ach-card.unlocked{opacity:1;border-color:var(--green)}
+.ach-icon{font-size:1.5rem}
+.ach-info{flex:1}
+.ach-name{font-size:.7rem;font-weight:700;color:var(--text)}
+.ach-desc{font-size:.6rem;color:var(--muted);margin-top:2px}
+.ach-xp{font-size:.6rem;background:var(--accent);border-radius:4px;padding:2px 6px;color:#fff}
+
+/* GAME MODE & TERRITORY */
+.game-panel{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:22;display:none;gap:10px;align-items:center}
+.game-panel.show{display:flex}
+.game-mode-btn{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:.7rem;cursor:pointer;transition:all .15s}
+.game-mode-btn:hover{border-color:var(--accent)}
+.game-mode-btn.active{background:var(--accent);border-color:var(--accent)}
+.territory-hud{display:none;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 14px}
+.territory-hud.show{display:flex}
+.territory-score{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem}
+.territory-label{font-size:.65rem;color:var(--muted)}
+.territory-bar{width:100px;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.territory-fill{height:100%;transition:width .5s;background:var(--green)}
+.territory-fill.enemy{background:var(--red)}
+
+/* SHAPE PREVIEW */
+.shape-preview{position:absolute;pointer-events:none;border:2px dashed var(--accent);z-index:4;display:none}
+.shape-preview.active{display:block}
+
+/* UNDO REDO */
+.undo-redo{display:flex;gap:4px;padding:4px}
+.ur-btn{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:.7rem}
+.ur-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.ur-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* TEXT TOOL */
+.text-input-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:none;align-items:center;justify-content:center}
+.text-input-modal.show{display:flex}
+.text-input-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;animation:slideup .25s}
+.text-input-box h3{font-family:'Syne',sans-serif;font-weight:800;margin-bottom:14px}
+.text-input-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:.9rem;margin-bottom:12px}
+.text-input-box input:focus{border-color:var(--accent)}
+.text-input-actions{display:flex;gap:8px}
+.text-input-actions button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-weight:700}
+.text-input-actions .cancel{background:transparent;color:var(--muted)}
+.text-input-actions .ok{background:var(--accent);color:#fff;border:none}
 
 /* CANVAS AREA */
 .canvas-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;background:var(--bg);background-image:radial-gradient(ellipse at 15% 85%,rgba(255,79,23,.04) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(124,58,237,.04) 0%,transparent 55%);position:relative}
@@ -227,6 +307,12 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
       <span id="myChipName"></span>
       <span class="role-badge" id="myRoleBadge" style="display:none"></span>
     </div>
+    <div class="xp-bar-wrap" id="xpBarWrap">
+      <div class="xp-level" id="xpLevelDisplay">1</div>
+      <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+      <div class="xp-text" id="xpText">0/100 XP</div>
+      <button class="my-chip" onclick="toggleAchievements()" style="cursor:pointer" title="Achievements">🏆</button>
+    </div>
   </div>
 </header>
 
@@ -239,6 +325,27 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
     <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')" title="Eraser (E)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16l10-10 7 7-3 4z"/><path d="M6 11L13 18"/></svg>
     </button>
+    <button class="tool-btn" id="btn-highlighter" onclick="setTool('highlighter')" title="Highlighter (H)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v4h4l6-6"/><path d="M15.5 2.5l4 4-10 10H5.5v-4l10-10z"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-spray" onclick="setTool('spray')" title="Spray (S)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="8" cy="18" r="2"/><circle cx="18" cy="16" r="2"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-fill" onclick="setTool('fill')" title="Fill Bucket (G)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11l-8-8-9 9 8 8 9-9z"/><path d="M20 12l3-3"/><path d="M18 16l2 2"/><circle cx="16" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-rect" onclick="setTool('rect')" title="Rectangle (R)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-circle" onclick="setTool('circle')" title="Circle (C)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-line" onclick="setTool('line')" title="Line (L)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+    </button>
+    <button class="tool-btn" id="btn-text" onclick="setTool('text')" title="Text (T)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M12 4v16"/><path d="M8 20h8"/></svg>
+    </button>
     <div class="sep"></div>
     <div class="size-wrap">
       <span class="size-label">SIZE</span>
@@ -249,6 +356,11 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
     <div class="palette" id="paletteEl"></div>
     <div class="sep"></div>
     <div class="custom-wrap" title="Custom color"><input type="color" id="customColorPicker" value="#000000" oninput="pickCustomColor(this.value)"></div>
+    <div class="sep"></div>
+    <div class="undo-redo">
+      <button class="ur-btn" onclick="undoCanvas()" title="Undo (Ctrl+Z)">↶ Undo</button>
+      <button class="ur-btn" onclick="redoCanvas()" title="Redo (Ctrl+Y)">↷ Redo</button>
+    </div>
   </div>
 
   <!-- CANVAS -->
@@ -258,6 +370,27 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
     <div id="lockOverlay"></div>
     <div id="blackoutEl"></div>
     <canvas id="confettiCanvas"></canvas>
+    <div class="chat-panel" id="chatPanel"></div>
+    <div class="emote-wheel" id="emoteWheel">
+      <button class="emote-btn" onclick="sendEmote('👍')">👍</button>
+      <button class="emote-btn" onclick="sendEmote('❤️')">❤️</button>
+      <button class="emote-btn" onclick="sendEmote('😂')">😂</button>
+      <button class="emote-btn" onclick="sendEmote('😮')">😮</button>
+      <button class="emote-btn" onclick="sendEmote('🔥')">🔥</button>
+      <button class="emote-btn" onclick="sendEmote('🎨')">🎨</button>
+      <button class="emote-btn" onclick="sendEmote('✨')">✨</button>
+      <button class="emote-btn" onclick="sendEmote('💯')">💯</button>
+    </div>
+    <div class="game-panel" id="gamePanel">
+      <button class="game-mode-btn" id="freeModeBtn" onclick="setGameMode('free')" class="active">🎨 Free Paint</button>
+      <button class="game-mode-btn" id="territoryBtn" onclick="setGameMode('territory')">🏴 Territory Wars</button>
+    </div>
+    <div class="territory-hud" id="territoryHud">
+      <div><div class="territory-score" id="myScore" style="color:var(--green)">0%</div><div class="territory-label">Your Territory</div></div>
+      <div class="territory-bar"><div class="territory-fill" id="territoryFill" style="width:50%"></div></div>
+      <div><div class="territory-score" id="enemyScore" style="color:var(--red)">50%</div><div class="territory-label">Enemy</div></div>
+    </div>
+    <div class="shape-preview" id="shapePreview"></div>
   </div>
 
   <!-- RIGHT PANEL -->
@@ -268,6 +401,10 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
       <button class="act-btn" onclick="downloadCanvas()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Save as PNG
+      </button>
+      <button class="act-btn" onclick="openChat()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
       </button>
       <button class="act-btn red" onclick="askClear()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -357,6 +494,28 @@ input[type=range].vert::-webkit-slider-thumb{-webkit-appearance:none;width:14px;
 <div class="toast" id="toast"></div>
 <div id="secretHint">Click logo 5× for staff login · Ctrl+Shift+L</div>
 
+<!-- ACHIEVEMENTS PANEL -->
+<div class="ach-panel" id="achPanel">
+  <div class="ach-header">
+    <div class="ach-title">🏆 Achievements</div>
+    <button class="ach-close" onclick="toggleAchievements()">✕</button>
+  </div>
+  <div class="ach-body" id="achBody"></div>
+</div>
+
+<!-- TEXT INPUT MODAL -->
+<div class="text-input-modal" id="textInputModal">
+  <div class="text-input-box">
+    <h3>✏️ Add Text</h3>
+    <input type="text" id="textInput" placeholder="Type your text..." maxlength="50">
+    <input type="number" id="textSizeInput" placeholder="Font size" min="12" max="200" value="24">
+    <div class="text-input-actions">
+      <button class="cancel" onclick="closeTextInput()">Cancel</button>
+      <button class="ok" onclick="confirmTextInput()">Add Text</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -382,6 +541,17 @@ let PASSWORDS = { admin: "admin123", owner: "owner999" };
 // ── Constants ─────────────────────────────────────────
 const PALETTE = ['#000000','#ffffff','#ef4444','#f97316','#f59e0b','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#64748b','#d4c5a9'];
 const USER_COLORS = ['#ff4f17','#7c3aed','#06b6d4','#22c55e','#f59e0b','#ec4899','#3b82f6','#ef4444'];
+const EMOTES = ['👍','❤️','😂','😮','🔥','🎨','✨','💯'];
+const ACHIEVEMENTS = [
+  {id:'firststroke',name:'First Brush',desc:'Draw your first stroke',xp:10},
+  {id:'paint100',name:'Paint100',desc:'Draw 100 strokes',xp:50},
+  {id:'rainbow',name:'Rainbow Rider',desc:'Use rainbow mode',xp:25},
+  {id:'teamplayer',name:'Team Player',desc:'Have 5 people online',xp:30},
+  {id:'clearhero',name:'Clear Hero',desc:'Clear the canvas',xp:20},
+  {id:'colors',name:'Rainbow Artist',desc:'Use all colors',xp:40},
+  {id:'territory',name:'Territory King',desc:'Capture 50% territory',xp:100},
+  {id:'chatty',name:'Chatty Cathy',desc:'Send 10 chat messages',xp:35}
+];
 
 // ── State ─────────────────────────────────────────────
 let db=null,myId=null,myName='',myRole='user';
@@ -392,6 +562,17 @@ let activeUsers={},adminPanelOpen=false,activeTab='troll';
 let canvasLocked=false,rainbowActive=false,lagMode=false,frozen=false,freezeTimer=null;
 let flipped=false,inverted=false,loginTab='admin',lockState=false;
 let lastTrollTs={},lastClearTs=0;
+
+// New features state
+let myXP=0,myLevel=1,xpToNextLevel=100;
+let strokeCount=0,chatCount=0;
+let unlockedAch={};
+let undoStack=[],redoStack=[];
+let shapeStartPos=null;
+let currentShapeTool=null;
+let gameMode='free';
+let myTerritoryPct=0;
+let textInputPos=null;
 
 const canvas=document.getElementById('mainCanvas');
 const ctx=canvas.getContext('2d');
@@ -422,9 +603,12 @@ function pickCustomColor(c){
   if(tool==='eraser') setTool('pen');
 }
 function setTool(t){
+  if(t==='text'){ textInputPos=getLastMousePos(); document.getElementById('textInputModal').classList.add('show'); document.getElementById('textInput').focus(); return; }
+  if(t==='rect'||t==='circle'||t==='line'){ currentShapeTool=t; shapeStartPos=null; document.getElementById('shapePreview').classList.add('active'); }
   tool=t;
-  ['pen','eraser'].forEach(n=>document.getElementById('btn-'+n).classList.toggle('active',n===t));
-  canvas.style.cursor=t==='eraser'?'cell':'crosshair';
+  const tools=['pen','eraser','highlighter','spray','fill','rect','circle','line','text'];
+  tools.forEach(n=>{ const el=document.getElementById('btn-'+n); if(el) el.classList.toggle('active',n===t); });
+  canvas.style.cursor=t==='eraser'?'cell':t==='fill'?'copy':'crosshair';
 }
 function setBrushSize(v){ brushSize=+v; document.getElementById('sizeDisplay').textContent=v; }
 function isConfigured(){ return FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.apiKey!=='YOUR_API_KEY'; }
@@ -447,9 +631,14 @@ function joinSession(){
   me.onDisconnect().remove();
   db.ref('/cursors/'+myId).onDisconnect().remove();
   loadStrokes().then(()=>{ listenStrokes(); listenClear(); });
-  listenUsers(); listenCursors(); listenTrollEvents(); listenLock(); listenAnnounce(); listenKick();
+  listenUsers(); listenCursors(); listenTrollEvents(); listenLock(); listenAnnounce(); listenKick(); listenChat(); listenEmotes();
   setupInputs();
+  renderAchievements();
   showToast('Welcome, '+myName+' 🎨');
+  document.getElementById('xpBarWrap').classList.add('show');
+  document.getElementById('gamePanel').classList.add('show');
+  loadXP();
+  saveForUndo();
 }
 
 // ── Secret login ──────────────────────────────────────
@@ -491,6 +680,91 @@ function doLogin(){
   }
 }
 document.getElementById('loginPwInput').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); if(e.key==='Escape') closeLogin(); });
+
+// ── XP & LEVEL ───────────────────────────────────────
+function addXP(amt){
+  myXP+=amt;
+  if(myXP>=xpToNextLevel){ myXP-=xpToNextLevel; myLevel++; xpToNextLevel=Math.floor(xpToNextLevel*1.5); showToast('🎉 Level up! You are now level '+myLevel); addXP(0); }
+  updateXPBar();
+  if(db) db.ref('/users/'+myId+'/xp').set({xp:myXP,level:myLevel});
+}
+function updateXPBar(){
+  document.getElementById('xpLevelDisplay').textContent=myLevel;
+  document.getElementById('xpFill').style.width=(myXP/xpToNextLevel*100)+'%';
+  document.getElementById('xpText').textContent=myXP+'/'+xpToNextLevel+' XP';
+}
+function loadXP(){
+  if(!db) return;
+  db.ref('/users/'+myId+'/xp').once('value').then(s=>{
+    const d=s.val(); if(d){ myXP=d.xp||0; myLevel=d.level||1; xpToNextLevel=Math.floor(100*Math.pow(1.5,myLevel-1)); updateXPBar(); }
+  });
+}
+
+// ── ACHIEVEMENTS ─────────────────────────────────────
+function unlockAchievement(id){
+  if(unlockedAch[id]) return;
+  unlockedAch[id]=true;
+  const ach=ACHIEVEMENTS.find(a=>a.id===id);
+  if(ach){ addXP(ach.xp); showToast('🏆 Unlocked: '+ach.name+' +'+ach.xp+' XP'); }
+  renderAchievements();
+}
+function toggleAchievements(){
+  const p=document.getElementById('achPanel'); p.classList.toggle('show');
+  if(p.classList.contains('show')) renderAchievements();
+}
+function renderAchievements(){
+  const body=document.getElementById('achBody'); body.innerHTML='';
+  ACHIEVEMENTS.forEach(ach=>{
+    const un=unlockedAch[ach.id];
+    const card=document.createElement('div');
+    card.className='ach-card'+(un?' unlocked':'');
+    card.innerHTML=`<div class="ach-icon">${un?'🏆':'🔒'}</div><div class="ach-info"><div class="ach-name">${ach.name}</div><div class="ach-desc">${ach.desc}</div></div><div class="ach-xp">+${ach.xp}</div>`;
+    body.appendChild(card);
+  });
+}
+
+// ── CHAT ───────────────────────────────────────────
+function sendChat(){
+  const input=document.getElementById('chatMsgInput');
+  const msg=input.value.trim();
+  if(!msg||!db) return;
+  db.ref('/chat').push({name:myName,msg,color:myColor,ts:Date.now()});
+  input.value='';
+  chatCount++;
+  if(chatCount===10) unlockAchievement('chatty');
+}
+function renderChat(msg){
+  const panel=document.getElementById('chatPanel');
+  const div=document.createElement('div');
+  div.className='chat-msg';
+  div.innerHTML=`<span class="chat-name" style="color:${msg.color}">${esc(msg.name)}:</span><span class="chat-text">${esc(msg.msg)}</span>`;
+  panel.appendChild(div);
+  panel.scrollTop=panel.scrollHeight;
+  if(panel.children.length>10) panel.removeChild(panel.children[0]);
+}
+
+// ── EMOTES ──────────────────────────────────────────
+function sendEmote(e){
+  if(!db) return;
+  db.ref('/emotes').push({name:myName,emote:e,ts:Date.now()});
+  showToast(e);
+}
+function renderEmote(d){
+  const el=document.createElement('div');
+  el.className='chat-msg';
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;pointer-events:none;animation:emotePop .8s forwards;z-index:1000';
+  el.textContent=d.emote;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),800);
+}
+function openChat(){
+  const panel=document.getElementById('chatPanel');
+  panel.classList.add('show');
+  if(!panel.querySelector('.chat-input-wrap')){
+    panel.innerHTML=`<div class="chat-input-wrap"><input type="text" class="chat-input" id="chatMsgInput" placeholder="Say something..." maxlength="100"><button class="chat-send" onclick="sendChat()">➤</button></div>`;
+    document.getElementById('chatMsgInput').addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
+  }
+}
 
 function applyRole(){
   const badge=document.getElementById('myRoleBadge');
@@ -711,8 +985,17 @@ function setupInputs(){
     if(e.target.tagName==='INPUT') return;
     if(e.key==='p'||e.key==='P') setTool('pen');
     if(e.key==='e'||e.key==='E') setTool('eraser');
+    if(e.key==='h'||e.key==='H') setTool('highlighter');
+    if(e.key==='s'||e.key==='S') setTool('spray');
+    if(e.key==='g'||e.key==='G') setTool('fill');
+    if(e.key==='r'||e.key==='R') setTool('rect');
+    if(e.key==='c'||e.key==='C') setTool('circle');
+    if(e.key==='l'&&!e.ctrlKey) setTool('line');
+    if(e.key==='t'||e.key==='T') setTool('text');
     if(e.key==='['){setBrushSize(Math.max(1,brushSize-2));document.getElementById('sizeSlider').value=brushSize;}
     if(e.key===']'){setBrushSize(Math.min(60,brushSize+2));document.getElementById('sizeSlider').value=brushSize;}
+    if(e.ctrlKey&&e.key==='z') undoCanvas();
+    if(e.ctrlKey&&e.key==='y') redoCanvas();
     if(e.ctrlKey&&e.shiftKey&&e.key==='L') openLogin();
   });
   canvas.addEventListener('mousemove',throttle(e=>{
@@ -721,6 +1004,29 @@ function setupInputs(){
   },60));
 }
 function getRainbowColor(){ const t=Date.now()/500; return `rgb(${Math.floor(Math.sin(t)*127+128)},${Math.floor(Math.sin(t+2)*127+128)},${Math.floor(Math.sin(t+4)*127+128)})`; }
+function getLastMousePos(){ return lastPt||{x:canvas.width/2,y:canvas.height/2}; }
+
+// ── SPRAY ───────────────────────────────────────────
+function drawSpray(x,y){
+  ctx.save();
+  ctx.globalAlpha=0.5;
+  for(let i=0;i<8;i++){
+    const angle=Math.random()*Math.PI*2;
+    const r=Math.random()*brushSize*2;
+    const px=x+Math.cos(angle)*r;
+    const py=y+Math.sin(angle)*r;
+    ctx.fillStyle=getEffBrushColor();
+    ctx.fillRect(px,py,1,1);
+  }
+  ctx.restore();
+}
+
+// ── HIGHLIGHTER ─────────────────────────────────────
+function applyComposite(t){
+  if(t==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.fillStyle='rgba(0,0,0,1)'; }
+  else if(t==='highlighter'){ ctx.globalCompositeOperation='multiply'; ctx.strokeStyle='rgba(255,255,0,0.3)'; ctx.fillStyle='rgba(255,255,0,0.3)'; ctx.lineWidth=brushSize*3; }
+  else { ctx.globalCompositeOperation='source-over'; const c=getEffBrushColor(); ctx.strokeStyle=c; ctx.fillStyle=c; ctx.lineWidth=brushSize; }
+}
 function getEffBrushColor(){ return rainbowActive&&tool!=='eraser'?getRainbowColor():brushColor; }
 function applyComposite(t){
   if(t==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.fillStyle='rgba(0,0,0,1)'; }
@@ -729,15 +1035,38 @@ function applyComposite(t){
 }
 function localDot(p){ ctx.save(); applyComposite(tool); ctx.beginPath(); ctx.arc(p.x,p.y,brushSize/2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
 function localLine(a,b){ ctx.save(); applyComposite(tool); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore(); }
-function onDown(e){ if(!myId||frozen||canvasLocked) return; drawing=true; strokeId=uid(); strokePts=[]; lastPt=null; const pos=getPos(e); strokePts.push(pos); localDot(pos); lastPt=pos; }
-function onMove(e){ if(!drawing||!myId||frozen||canvasLocked) return; const pos=getPos(e); if(lastPt) localLine(lastPt,pos); lastPt=pos; strokePts.push(pos); const now=Date.now(); if(now-lastFlush>(lagMode?800:55)){lastFlush=now;flushStroke(false);} }
-function onUp(){ if(!drawing) return; drawing=false; if(strokePts.length) flushStroke(true); strokePts=[]; strokeId=null; lastPt=null; }
-function flushStroke(complete){ if(!db||!strokeId||!strokePts.length) return; db.ref('/strokes/'+strokeId).set({uid:myId,color:tool==='eraser'?null:getEffBrushColor(),size:brushSize,tool,pts:strokePts,ts:Date.now(),done:complete}); }
+function onDown(e){ if(!myId||frozen||canvasLocked) return; drawing=true; strokeId=uid(); strokePts=[]; lastPt=null; const pos=getPos(e);
+  if(tool==='fill'){ floodFill(pos.x,pos.y,brushColor); drawing=false; return; }
+  if(currentShapeTool){ shapeStartPos=pos; return; }
+  strokePts.push(pos); localDot(pos); lastPt=pos;
+}
+function onMove(e){ if(!drawing||!myId||frozen||canvasLocked) return; const pos=getPos(e);
+  if(currentShapeTool&&shapeStartPos){ drawShapePreview(e); return; }
+  if(tool==='spray'){ drawSpray(pos.x,pos.y); strokePts.push(pos); }else if(lastPt) localLine(lastPt,pos); lastPt=pos; strokePts.push(pos); const now=Date.now(); if(now-lastFlush>(lagMode?800:55)){lastFlush=now;flushStroke(false);} }
+function onUp(){ if(!drawing) return;
+  if(currentShapeTool&&shapeStartPos){ finishShape(event); drawing=false; return; }
+  drawing=false; if(strokePts.length) flushStroke(true); strokePts=[]; strokeId=null; lastPt=null; }
+function flushStroke(complete){ if(!db||!strokeId||!strokePts.length) return; db.ref('/strokes/'+strokeId).set({uid:myId,color:tool==='eraser'?null:getEffBrushColor(),size:brushSize,tool,pts:strokePts,ts:Date.now(),done:complete}); strokeCount++; addXP(tool==='spray'?2:1); if(strokeCount===100) unlockAchievement('paint100'); }
 
 // ── Stroke render ─────────────────────────────────────
 function drawStroke(s){
   if(!s||!s.pts||s.pts.length<1) return;
   const pts=s.pts;
+  
+  if(s.tool==='text'&&pts[0].text){
+    ctx.save(); ctx.font=`bold ${pts[0].size}px 'Syne', sans-serif`; ctx.fillStyle=pts[0].color; ctx.fillText(pts[0].text,pts[0].x,pts[0].y); ctx.restore(); return;
+  }
+  
+  if(s.tool==='rect'||s.tool==='circle'||s.tool==='line'){
+    if(pts.length<2) return;
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=s.size||4; ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=s.color||'#000';
+    const x1=pts[0].x,y1=pts[0].y,x2=pts[1].x,y2=pts[1].y;
+    if(s.tool==='rect'){ ctx.strokeRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1)); }
+    else if(s.tool==='circle'){ const r=Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2)); ctx.beginPath(); ctx.arc(x1,y1,r,0,Math.PI*2); ctx.stroke(); }
+    else{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+    ctx.restore(); return;
+  }
+  
   ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=s.size||4;
   if(s.tool==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; ctx.fillStyle='rgba(0,0,0,1)'; }
   else { ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=s.color||'#000'; ctx.fillStyle=s.color||'#000'; }
@@ -747,13 +1076,35 @@ function drawStroke(s){
   ctx.restore();
 }
 function loadStrokes(){ return db.ref('/strokes').orderByChild('ts').once('value').then(snap=>{ const d=snap.val(); if(d) Object.values(d).sort((a,b)=>a.ts-b.ts).forEach(drawStroke); }); }
+
+// ── UNDO/REDO ───────────────────────────────────────
+function saveForUndo(){
+  const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  undoStack.push(imgData);
+  if(undoStack.length>20) undoStack.shift();
+  redoStack=[];
+}
+function undoCanvas(){
+  if(undoStack.length<1) return;
+  const imgData=undoStack.pop();
+  redoStack.push(ctx.getImageData(0,0,canvas.width,canvas.height));
+  ctx.putImageData(imgData,0,0);
+  saveForUndo();
+}
+function redoCanvas(){
+  if(redoStack.length<1) return;
+  const imgData=redoStack.pop();
+  undoStack.push(ctx.getImageData(0,0,canvas.width,canvas.height));
+  ctx.putImageData(imgData,0,0);
+  saveForUndo();
+}
 async function redrawAll(){ const snap=await db.ref('/strokes').orderByChild('ts').once('value'); ctx.clearRect(0,0,canvas.width,canvas.height); const d=snap.val(); if(d) Object.values(d).sort((a,b)=>a.ts-b.ts).forEach(drawStroke); }
 function listenStrokes(){
   db.ref('/strokes').orderByChild('ts').startAt(loadTime+1).on('child_added',snap=>{ const s=snap.val(); if(s&&s.uid!==myId) drawStroke(s); });
   db.ref('/strokes').on('child_changed',snap=>{ const s=snap.val(); if(s&&s.uid!==myId) redrawAll(); });
 }
 function listenClear(){
-  db.ref('/clearEvent').on('value',snap=>{ const ev=snap.val(); if(!ev||ev.ts<=lastClearTs) return; lastClearTs=ev.ts; ctx.clearRect(0,0,canvas.width,canvas.height); db.ref('/strokes').remove(); if(ev.uid!==myId) showToast((ev.name||'Someone')+' cleared the canvas'); });
+  db.ref('/clearEvent').on('value',snap=>{ const ev=snap.val(); if(!ev||ev.ts<=lastClearTs) return; lastClearTs=ev.ts; ctx.clearRect(0,0,canvas.width,canvas.height); db.ref('/strokes').remove(); showToast((ev.name||'Someone')+' cleared the canvas'); if(ev.uid===myId) unlockAchievement('clearhero'); });
 }
 function askClear(){
   if(!db) return;
@@ -765,7 +1116,7 @@ function askClear(){
 
 // ── Users ─────────────────────────────────────────────
 function listenUsers(){
-  db.ref('/users').on('value',snap=>{ activeUsers=snap.val()||{}; renderUsers(); document.getElementById('onlineCount').textContent=Object.keys(activeUsers).length; if(activeTab==='users') renderApUsers(); });
+  db.ref('/users').on('value',snap=>{ activeUsers=snap.val()||{}; renderUsers(); const count=Object.keys(activeUsers).length; document.getElementById('onlineCount').textContent=count; if(activeTab==='users') renderApUsers(); if(count>=5) unlockAchievement('teamplayer'); });
 }
 function renderUsers(){
   const list=document.getElementById('usersList'); list.innerHTML='';
@@ -777,6 +1128,105 @@ function renderUsers(){
   });
 }
 function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ── CHAT & EMOTES LISTENERS ──────────────────────────────
+function listenChat(){
+  db.ref('/chat').orderByChild('ts').startAt(loadTime+1).on('child_added',snap=>{ const m=snap.val(); if(m) renderChat(m); });
+}
+function listenEmotes(){
+  db.ref('/emotes').orderByChild('ts').startAt(loadTime+1).on('child_added',snap=>{ const e=snap.val(); if(e){ renderEmote(e); if(e.name===myName) addXP(5); } });
+}
+
+// ── TEXT TOOL ────────────────────────────────────────────
+function closeTextInput(){ document.getElementById('textInputModal').classList.remove('show'); textInputPos=null; }
+function confirmTextInput(){
+  const text=document.getElementById('textInput').value;
+  const size=parseInt(document.getElementById('textSizeInput').value)||24;
+  if(!text||!textInputPos) return;
+  ctx.save();
+  ctx.font=`bold ${size}px 'Syne', sans-serif`;
+  ctx.fillStyle=brushColor;
+  ctx.fillText(text,textInputPos.x,textInputPos.y);
+  ctx.restore();
+  strokePts=[{x:textInputPos.x,y:textInputPos.y,text,size,color:brushColor}];
+  flushStroke(true);
+  addXP(10);
+  closeTextInput();
+}
+document.getElementById('textInput').addEventListener('keydown',e=>{ if(e.key==='Enter') confirmTextInput(); if(e.key==='Escape') closeTextInput(); });
+document.getElementById('textInputModal').addEventListener('click',e=>{ if(e.target.id==='textInputModal') closeTextInput(); });
+
+// ── GAME MODE & TERRITORY ───────────────────────────────
+function setGameMode(mode){
+  gameMode=mode;
+  document.getElementById('freeModeBtn').classList.toggle('active',mode==='free');
+  document.getElementById('territoryBtn').classList.toggle('active',mode==='territory');
+  document.getElementById('territoryHud').classList.toggle('show',mode==='territory');
+  if(mode==='territory'){
+    showToast('🏴 Territory Wars mode! Paint areas to capture territory!');
+    startTerritoryCapture();
+  }
+}
+function startTerritoryCapture(){
+  myTerritoryPct=50;
+  updateTerritoryHUD();
+  setInterval(()=>{
+    if(gameMode!=='territory'||!db) return;
+    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const data=imgData.data;
+    let myPixels=0,enemyPixels=0;
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i],g=data[i+1],b=data[i+2];
+      if(r===255&&g<100&&b<100) myPixels++;
+      else if(r<100&&g===255&&b<100) enemyPixels++;
+    }
+    const total=myPixels+enemyPixels||1;
+    myTerritoryPct=Math.floor(myPixels/total*100);
+    updateTerritoryHUD();
+  },3000);
+}
+function updateTerritoryHUD(){
+  document.getElementById('myScore').textContent=myTerritoryPct+'%';
+  document.getElementById('enemyScore').textContent=(100-myTerritoryPct)+'%';
+  document.getElementById('territoryFill').style.width=myTerritoryPct+'%';
+  document.getElementById('territoryFill').classList.toggle('enemy',myTerritoryPct<50);
+  if(myTerritoryPct>=50) unlockAchievement('territory');
+}
+
+// ── SHAPE TOOLS ─────────────────────────────────────
+function drawShapePreview(e){
+  if(!currentShapeTool||!shapeStartPos) return;
+  const pos=getPos(e);
+  const preview=document.getElementById('shapePreview');
+  const x1=shapeStartPos.x,y1=shapeStartPos.y,x2=pos.x,y2=pos.y;
+  if(currentShapeTool==='rect'){
+    preview.style.cssText=`left:${Math.min(x1,x2)}px;top:${Math.min(y1,y2)}px;width:${Math.abs(x2-x1)}px;height:${Math.abs(y2-y1)}px;border:2px dashed var(--accent);display:block`;
+  }else if(currentShapeTool==='circle'){
+    const r=Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
+    preview.style.cssText=`left:${x1-r}px;top:${y1-r}px;width:${r*2}px;height:${r*2}px;border:2px dashed var(--accent);border-radius:50%;display:block`;
+  }else if(currentShapeTool==='line'){
+    preview.style.cssText=`left:${x1}px;top:${y1}px;width:${Math.abs(x2-x1)}px;height:2px;background:var(--accent);transform:rotate(${Math.atan2(y2-y1,x2-x1)}rad);transform-origin:0 0;display:block`;
+  }
+}
+function finishShape(e){
+  if(!currentShapeTool||!shapeStartPos) return;
+  const pos=getPos(e);
+  ctx.save(); applyComposite(tool);
+  const x1=shapeStartPos.x,y1=shapeStartPos.y,x2=pos.x,y2=pos.y;
+  if(currentShapeTool==='rect'){
+    ctx.strokeRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));
+  }else if(currentShapeTool==='circle'){
+    const r=Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
+    ctx.beginPath(); ctx.arc(x1,y1,r,0,Math.PI*2); ctx.stroke();
+  }else if(currentShapeTool==='line'){
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.restore();
+  shapeStartPos=null;
+  document.getElementById('shapePreview').style.display='none';
+  strokePts=[{x:x1,y:y1},{x:x2,y:y2}];
+  flushStroke(true);
+}
 
 // ── Cursors ───────────────────────────────────────────
 const cursorEls={};
